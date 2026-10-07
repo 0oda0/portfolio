@@ -166,3 +166,16 @@ dialog button { font: 500 13px var(--mono); background: var(--panel); color: var
 @media (prefers-reduced-motion: reduce) { .proj .frame { transition: none; } }
 @media (max-width: 860px) { .intro { grid-template-columns: minmax(0, 1fr); } }
 .topbar .theme { display: inline-block; }
+/* опыт и образование */
+.cv { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 48px; }
+.cv h2 { font-size: clamp(22px, 2.6vw, 30px); margin-bottom: 18px; }
+.cv .k { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--soft); margin-top: 18px; }
+.cv .stack { margin-top: 8px; }
+.timeline { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.timeline li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.timeline .when { font: 500 12px var(--mono); color: var(--signal); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.timeline b { display: block; font-weight: 600; }
+.timeline .where { color: var(--soft); font-size: 15px; }
+.timeline p { color: var(--soft); font-size: 15px; margin-top: 4px; }
+@media (max-width: 860px) { .cv { grid-template-columns: minmax(0, 1fr); } .timeline li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.intro h1 em { font-style: normal; color: var(--accent); }

@@ -14,7 +14,7 @@
 <div class="home">
   <header class="topbar">
     <div class="mark" id="mark"></div>
-    <nav><a href="#projects">Проекты</a><a href="#services">Что делаю</a><a href="#contacts">Контакты</a>
+    <nav><a href="#projects">Проекты</a><a href="#cv">Опыт</a><a href="#services">Что делаю</a><a href="#contacts">Контакты</a>
       <button class="theme" id="theme" type="button" style="margin:0">Тема: как в системе</button></nav>
   </header>
 
@@ -32,7 +32,16 @@
 
   <section class="block" id="projects"><h2>Проекты</h2><div class="projects" id="project-list"><p class="empty-note">Загрузка…</p></div></section>
 
-  <section class="block" id="services"><h2>Что делаю</h2><div class="svc" id="svc"></div><div class="stack" id="stack"></div></section>
+  <section class="block" id="cv"><div class="cv">
+    <div><h2>Опыт</h2><ol class="timeline" id="exp"></ol></div>
+    <div><h2>Образование</h2><ol class="timeline" id="edu"></ol>
+      <h2 style="margin-top:36px">Навыки</h2>
+      <div class="k">Языки</div><div class="stack" id="langs"></div>
+      <div class="k">Технологии</div><div class="stack" id="stack"></div>
+      <div class="k">Личные качества</div><div class="stack" id="soft"></div></div>
+  </div></section>
+
+  <section class="block" id="services"><h2>Что делаю</h2><div class="svc" id="svc"></div></section>
 
   <footer class="end" id="foot"></footer>
 </div>
@@ -41,7 +50,7 @@
 (async () => {
   const me = await fetch('profile.json').then((r) => r.json());
   document.title = `${me.name} — портфолио`;
-  document.getElementById('mark').textContent = me.name;
+  document.getElementById('mark').innerHTML = `${esc(me.name)}${me.nickname ? ` <span style="color:var(--soft);font-weight:500">· ${esc(me.nickname)}</span>` : ''}`;
   document.getElementById('role').textContent = [me.role, me.location].filter(Boolean).join(' · ');
   document.getElementById('headline').innerHTML = emph(me.headline);
   document.getElementById('about').innerHTML = me.about.map((p) => `<p>${esc(p)}</p>`).join('');
@@ -57,7 +66,11 @@
     setTimeout(() => (b.textContent = 'копировать'), 1600);
   });
   document.getElementById('svc').innerHTML = me.services.map((s) => `<div><b>${esc(s.title)}</b><span>${esc(s.text)}</span></div>`).join('');
-  document.getElementById('stack').innerHTML = me.stack.map((s) => `<span class="chip">${esc(s)}</span>`).join('');
+  const chips = (id, list, cls = 'chip') => (document.getElementById(id).innerHTML = (list || []).map((s) => `<span class="${cls}">${esc(s)}</span>`).join(''));
+  chips('langs', me.languages); chips('stack', me.stack, 'chip rule'); chips('soft', me.soft);
+  const tl = (id, list) => (document.getElementById(id).innerHTML = (list || []).map((x) => `<li><span class="when">${esc(x.period)}</span>
+    <div><b>${esc(x.title)}</b><span class="where">${esc(x.place || '')}</span>${x.text ? `<p>${esc(x.text)}</p>` : ''}</div></li>`).join(''));
+  tl('exp', me.experience); tl('edu', me.education);
   document.getElementById('foot').textContent = `© ${new Date().getFullYear()} ${me.name}`;
 
   const STATUS = { idea: 'идея', in_progress: 'в работе', testing: 'тестирование', deployed: 'запущен', done: 'готов', paused: 'на паузе' };

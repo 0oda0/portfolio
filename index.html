@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Портфолио</title>
+<meta name="description" content="Портфолио: сайты, CRM и автоматизация для бизнеса">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<!-- Данные: profile.json (обо мне и контакты), projects/index.json (список проектов), projects/<slug>/project.json -->
+<div class="home">
+  <header class="topbar">
+    <div class="mark" id="mark"></div>
+    <nav><a href="#projects">Проекты</a><a href="#services">Что делаю</a><a href="#contacts">Контакты</a>
+      <button class="theme" id="theme" type="button" style="margin:0">Тема: как в системе</button></nav>
+  </header>
+
+  <section class="intro">
+    <div>
+      <div class="who" id="role"></div>
+      <h1 id="headline"></h1>
+      <div class="about" id="about"></div>
+    </div>
+    <div id="contacts">
+      <div style="margin-bottom:14px"><span class="status" id="available"></span></div>
+      <div class="contact-list" id="contact-list"></div>
+    </div>
+  </section>
+
+  <section class="block" id="projects"><h2>Проекты</h2><div class="projects" id="project-list"><p class="empty-note">Загрузка…</p></div></section>
+
+  <section class="block" id="services"><h2>Что делаю</h2><div class="svc" id="svc"></div><div class="stack" id="stack"></div></section>
+
+  <footer class="end" id="foot"></footer>
+</div>
+<script src="assets/common.js"></script>
+<script>
+(async () => {
+  const me = await fetch('profile.json').then((r) => r.json());
+  document.title = `${me.name} — портфолио`;
+  document.getElementById('mark').textContent = me.name;
+  document.getElementById('role').textContent = [me.role, me.location].filter(Boolean).join(' · ');
+  document.getElementById('headline').innerHTML = emph(me.headline);
+  document.getElementById('about').innerHTML = me.about.map((p) => `<p>${esc(p)}</p>`).join('');
+  document.getElementById('available').textContent = me.available || 'Открыт к проектам';
+  document.getElementById('contact-list').innerHTML = me.contacts.map((c, i) => `<div><span>${esc(c.label)}</span>
+    <b>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.value)}</a>` : esc(c.value)}</b>
+    <button class="copy" type="button" data-i="${i}">копировать</button></div>`).join('');
+  document.getElementById('contact-list').addEventListener('click', async (e) => {
+    const b = e.target.closest('.copy'); if (!b) return;
+    const v = me.contacts[b.dataset.i].value;
+    try { await navigator.clipboard.writeText(v); b.textContent = 'скопировано'; }
+    catch { const r = document.createRange(); r.selectNodeContents(b.previousElementSibling); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent = 'выделено'; }
+    setTimeout(() => (b.textContent = 'копировать'), 1600);
+  });
+  document.getElementById('svc').innerHTML = me.services.map((s) => `<div><b>${esc(s.title)}</b><span>${esc(s.text)}</span></div>`).join('');
+  document.getElementById('stack').innerHTML = me.stack.map((s) => `<span class="chip">${esc(s)}</span>`).join('');
+  document.getElementById('foot').textContent = `© ${new Date().getFullYear()} ${me.name}`;
+
+  const STATUS = { idea: 'идея', in_progress: 'в работе', testing: 'тестирование', deployed: 'запущен', done: 'готов', paused: 'на паузе' };
+  const { projects } = await fetch('projects/index.json').then((r) => r.json());
+  const list = (await Promise.all(projects.map((slug) => fetch(`projects/${slug}/project.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null)))).filter(Boolean);
+  document.getElementById('project-list').innerHTML = list.length ? list.map((p) => `
+    <a class="proj" href="project.html?p=${encodeURIComponent(p.slug)}">
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><code>${esc(p.hero?.url || p.title)}</code></div><img src="projects/${esc(p.slug)}/${esc(p.cover)}" alt="${esc(p.title)}" loading="lazy"></div>
+      <div class="meta">${p.status ? `<span class="chip rule">${esc(STATUS[p.status] || p.status)}</span>` : ''}${(p.tags || []).map((t) => `<span class="chip">${esc(t)}</span>`).join('')}</div>
+      <h3>${esc(p.title)}</h3><p>${esc(p.subtitle)}</p>
+      <span class="more">Смотреть экраны и логику →</span>
+    </a>`).join('') : '<p class="empty-note">Проекты скоро появятся.</p>';
+})();
+</script>
+</body>
+</html>

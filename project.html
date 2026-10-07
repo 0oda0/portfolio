@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Проект</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<!-- Страница проекта собирается из projects/<slug>/project.json — формат описан в docs/PROJECT_SCHEMA.md -->
+<div class="shell">
+  <aside class="index">
+    <div class="mark" id="mark"></div>
+    <nav id="toc"></nav>
+    <button class="theme" id="theme" type="button">Тема: как в системе</button>
+  </aside>
+  <main id="main"><p class="empty-note">Загрузка проекта…</p></main>
+</div>
+<dialog id="zoom"><form method="dialog"><button type="submit">Закрыть ✕</button></form><img alt="" id="zoom-img"></dialog>
+<script src="assets/common.js"></script>
+<script>
+(async () => {
+  const slug = new URLSearchParams(location.search).get('p') || '';
+  const main = document.getElementById('main');
+  if (!/^[a-z0-9-]+$/.test(slug)) { main.innerHTML = '<p class="empty-note">Проект не указан. <a href="./">Все проекты</a></p>'; return; }
+  const base = `projects/${slug}/`;
+  let P;
+  try { P = await fetch(base + 'project.json').then((r) => { if (!r.ok) throw 0; return r.json(); }); }
+  catch { main.innerHTML = '<p class="empty-note">Проект не найден. <a href="./">Все проекты</a></p>'; return; }
+  const src = (f) => base + f;
+  const frame = (img, url, alt, full, lazy = true) => `<div class="frame"><div class="bar"><i></i><i></i><i></i><code>${esc(url || '')}</code></div>
+    <button class="shot" type="button" data-full="${src(full || img)}"><img src="${src(img)}" alt="${esc(alt)}"${lazy ? ' loading="lazy"' : ''}></button></div>`;
+  const head = (no, title, lead) => `<header>${no ? `<span class="no">${esc(no)}</span>` : ''}<h2>${esc(title)}</h2>${lead ? `<p>${esc(lead)}</p>` : ''}</header>`;
+  document.title = P.title;
+  document.getElementById('mark').innerHTML = `${esc(P.title)}<span>${esc((P.tags || []).slice(0, 2).join(' · ').toUpperCase())}</span>`;
+
+  const H = P.hero || {};
+  let html = `<a class="back" href="./">← Все проекты</a>
+  <section class="hero" id="top"><div>
+    <h1>${emph(H.headline || P.title)}</h1>
+    ${H.lead ? `<p class="lead">${esc(H.lead)}</p>` : ''}
+    ${(H.facts || []).length ? `<div class="facts">${H.facts.map((f) => `<div><b>${esc(f.value)}</b><span>${esc(f.label)}</span></div>`).join('')}</div>` : ''}
+    <div class="stack">${[P.year, P.role].filter(Boolean).map((x) => `<span class="chip">${esc(x)}</span>`).join('')}${(P.stack || []).map((x) => `<span class="chip rule">${esc(x)}</span>`).join('')}</div>
+    ${(P.links || []).length ? `<div class="stack">${P.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`).join('')}</div>` : ''}
+  </div>
+  ${H.image ? `<div class="stage">${frame(H.image, H.url, P.title, null, false)}${H.phone ? `<img class="phone" src="${src(H.phone)}" alt="${esc(P.title)} на телефоне">` : ''}</div>` : ''}
+  </section>`;
+  const toc = [['Обзор', [['top', 'Проект']]]];
+
+  if (P.flow) {
+    html += `<section class="chapter" id="logic">${head(P.flow.no, P.flow.title, P.flow.lead)}
+      <div class="flow">${P.flow.steps.map((s) => `<div><small>${esc(s.label || '')}</small><b>${esc(s.title)}</b><span>${esc(s.text)}</span></div>`).join('')}</div></section>`;
+    toc[0][1].push(['logic', P.flow.nav || 'Как устроено']);
+  }
+  for (const c of P.chapters || []) {
+    html += `<section class="chapter" id="${esc(c.id)}">${head(c.no, c.title, c.lead)}
+      ${c.screens.map((s) => `<article class="screen" id="${esc(s.id)}">${frame(s.img, s.url, s.title, s.full)}
+        <div class="notes">
+          <div class="who">${(s.roles || []).map((r) => `<span class="chip">${esc(r)}</span>`).join('')}${s.tag ? `<span class="chip rule">${esc(s.tag)}</span>` : ''}</div>
+          <h3>${esc(s.title)}</h3>${s.text ? `<p>${esc(s.text)}</p>` : ''}
+          ${(s.logic || []).length ? `<div class="k">${esc(s.logic_title || 'Бизнес-логика')}</div><ul>${s.logic.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        </div></article>`).join('')}</section>`;
+    toc.push([c.nav || c.title, c.screens.map((s) => [s.id, s.title])]);
+  }
+  const tail = [];
+  if (P.cards) {
+    html += `<section class="chapter" id="${esc(P.cards.id || 'cards')}">${head(P.cards.no, P.cards.title, P.cards.lead)}
+      <div class="cards">${P.cards.items.map((k) => `<div class="card"><span class="chip${k.rule ? ' rule' : ''}">${esc(k.chip || '')}</span><h3>${esc(k.title)}</h3><p>${esc(k.text)}</p></div>`).join('')}</div></section>`;
+    tail.push([P.cards.id || 'cards', P.cards.nav || P.cards.title]);
+  }
+  if (P.gallery) {
+    const G = P.gallery;
+    html += `<section class="chapter" id="${esc(G.id || 'gallery')}">${head(G.no, G.title, G.lead)}
+      <div class="pair">${G.items.map((g) => `<figure>${g.phone ? `<div class="ph"><img src="${src(g.img)}" alt="${esc(g.caption)}" loading="lazy"></div>` : frame(g.img, g.url || '', g.caption)}<figcaption>${esc(g.caption)}</figcaption></figure>`).join('')}</div>
+      ${(G.steps || []).length ? `<ol class="steps">${G.steps.map((s) => `<li><div><b>${esc(s.title)}</b><span>${esc(s.text)}</span></div></li>`).join('')}</ol>` : ''}</section>`;
+    tail.push([G.id || 'gallery', G.nav || G.title]);
+  }
+  if (P.table) {
+    const T = P.table;
+    html += `<section class="chapter" id="${esc(T.id || 'table')}">${head(T.no, T.title, T.lead)}
+      <div class="table-wrap"><table><thead><tr>${T.head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${T.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`;
+    tail.push([T.id || 'table', T.nav || T.title]);
+  }
+  if (P.footnote) html += `<footer class="end">${esc(P.footnote)}</footer>`;
+  if (tail.length) toc.push(['Итог', tail]);
+  main.innerHTML = html;
+
+  document.getElementById('toc').innerHTML = toc.map(([g, list]) => `<div><div class="grp">${esc(g)}</div>${list.map(([id, t]) => `<a href="#${esc(id)}">${esc(t)}</a>`).join('')}</div>`).join('');
+  const links = [...document.querySelectorAll('#toc a')];
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id));
+  }), { rootMargin: '-35% 0px -60% 0px' });
+  document.querySelectorAll('.hero, .chapter, .screen').forEach((el) => io.observe(el));
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+})();
+</script>
+</body>
+</html>

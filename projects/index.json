@@ -2,6 +2,7 @@
  "projects": [
   "studio-booking",
   "dailytimer",
-  "ford-diagnostics"
+  "ford-diagnostics",
+  "task-tracker"
  ]
 }

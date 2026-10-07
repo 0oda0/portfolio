@@ -15,6 +15,7 @@ node scripts/check.js    # проверка проектов перед публ
 ## На сервер
 ```bash
 git clone https://github.com/0oda0/portfolio.git /root/portfolio && cd /root/portfolio
-PORT=8081 bash deploy/install.sh        # обновление: git pull (перезапуск не нужен)
+PORT=8081 bash deploy/install.sh        # сайт копируется в /opt/portfolio
+# обновление: cd /root/portfolio && git pull && PORT=8081 bash deploy/install.sh
 ```
 Без сборки и зависимостей — нужен только Node.js. Файлы можно выложить и на любой статический хостинг.
